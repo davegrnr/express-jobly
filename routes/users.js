@@ -1,16 +1,21 @@
 const express = require("express");
-const router = new express.Router();
-const ExpressError = require("../expressError");
-const db = require("../db");
+const Router = require("express").Router;
+const router = new Router();
+const User = require("../models/user");
+const { ensureLoggedIn, ensureCorrectUser } = require("../middleware/auth")
 
 
-
-/** GET / - get list of users.
- *
- * => {users: [{username, first_name, last_name, phone}, ...]}
- *
- **/
-
+// GETs all users. Had to remove ensureLoggedIn() because it was returning as "not defined"
+router.get("/", ensureLoggedIn,  async function (req, res, next) {
+    try {
+      let users = await User.all();
+      return res.json({users});
+    }
+  
+    catch (err) {
+      return next(err);
+    }
+  });
 
 /** GET /:username - get detail of users.
  *
@@ -18,6 +23,16 @@ const db = require("../db");
  *
  **/
 
+ router.get("/:username", ensureCorrectUser, async function (req, res, next) {
+    try {
+      let user = await User.get(req.params.username);
+      return res.json({user});
+    }
+  
+    catch (err) {
+      return next(err);
+    }
+  });
 
 /** GET /:username/to - get messages to user
  *
@@ -29,6 +44,15 @@ const db = require("../db");
  *
  **/
 
+router.get("/:username/to", ensureCorrectUser, async (req, res, next) => {
+    try{
+        let messages = await User.messagesTo(req.params.username);
+        return res.json({messages})
+
+    } catch(e){
+        return next(e);
+    }
+})
 
 /** GET /:username/from - get messages from user
  *
@@ -39,5 +63,16 @@ const db = require("../db");
  *                 to_user: {username, first_name, last_name, phone}}, ...]}
  *
  **/
+
+ router.get("/:username/from", ensureCorrectUser, async (req, res, next) => {
+    try{
+        let messages = await User.messagesFrom(req.params.username);
+        return res.json({messages})
+
+    } catch(e){
+        return next(e);
+    }
+})
+
 
  module.exports = router;
